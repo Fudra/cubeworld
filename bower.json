@@ -3,7 +3,7 @@
   "authors": [
     "Philipp Wahle <phil.wahle@student.htw-berlin.de>"
   ],
-  "description": "A Treejs project",
+  "description": "A Threejs project",
   "main": "app.js",
   "moduleType": [],
   "license": "MIT",
@@ -14,5 +14,9 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "dependencies": {
+    "three.js": "threejs#*",
+    "jquery": "~2.1.4"
+  }
 }
