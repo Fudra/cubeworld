@@ -19,13 +19,22 @@ var mesh,
 
 var boxWidth = 10,
     boxDepth = 10,
-    minHeight = 10;
+    minHeight = 10,
+    cellWidth = 10;
 
 var worldWidth = 16,
     worldDepth = 50,
+    totalWorldWidth = worldWidth * boxWidth,
+    totalWorldDepth = worldDepth * boxDepth,
     worldHalfWidth = worldWidth / 2,
     worldHalfDepth = worldDepth / 2,
     data = generateHeight(worldWidth, worldDepth);
+
+var SHADOW_MAP_WIDTH = 2048,
+    SHADOW_MAP_HEIGHT = 1024;
+
+var pointLightsCount = 30;
+var directionalLight;
 
 var clock = new THREE.Clock();
 
@@ -42,9 +51,14 @@ function init() {
     container = document.getElementById('container');
 
 
+    // x -> worldWidth;
+    // z -> worldDepth
+
     // camera
     camera = new THREE.PerspectiveCamera(50, width / height, 1, 20000);
-    camera.position.y = getY(worldHalfWidth, worldHalfDepth); //* 100 + 100;
+    camera.position.set(100, 14.6, 50);
+    camera.rotation.y = 0;
+    camera.rotation.z = -Math.PI;
 
 
     // controls
@@ -52,31 +66,33 @@ function init() {
 
     controls.movementSpeed = 100;
     controls.lookSpeed = 0.125;
-    controls.lookVertical = true;
+    controls.lookVertical = false;
     controls.verticalMin = 1.1;
     controls.verticalMax = 2.2;
 
 
     // scene
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xffffff, 0.0015);
+    scene.fog = new THREE.FogExp2(0xefd1b5, 0.0025);
 
 
     // lights
 
-    var ambientLight = new THREE.AmbientLight(0xcccccc);
+    var ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
 
-    var directionalLight = new THREE.DirectionalLight(0xcccccc, 2);
+    directionalLight = new THREE.DirectionalLight(0xcccccc, 2);
     directionalLight.position.set(1, 1, 0.5).normalize();
-    scene.add(directionalLight);
+    //scene.add(directionalLight);
 
+    addPointLights();
 
     // terrain
+    generateCitySkyline();
+    addBuildingsToScene();
 
-    generateTerrainData();
-    generateTerrain();
-    console.log(data);
+    // player
+    setPlayer();
 
     // renderer
 
@@ -84,6 +100,10 @@ function init() {
     renderer.setClearColor(0x000000);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+
 
     container.innerHTML = "";
 
@@ -102,7 +122,7 @@ function init() {
 
 
 /**
- *
+ *  resize event
  */
 function onWindowResize() {
 
@@ -120,7 +140,7 @@ function onWindowResize() {
 
 
 /**
- *
+ *  animation funtion
  */
 function animate() {
 
@@ -132,7 +152,7 @@ function animate() {
 }
 
 /**
- *
+ *  create the height of the buildings
  * @param width
  * @param height
  * @returns {Array}
@@ -157,11 +177,10 @@ function generateHeight(width, height) {
         for (var i = 0; i < size; i++) {
 
             var x = i % width, y = ( i / width ) | 0;
-            data[i] += Math.abs( perlin.noise(x / quality, y / quality, z) * quality ) + minHeight;
-
+            data[i] += Math.abs(perlin.noise(x / quality, y / quality, z) * quality) + minHeight;
         }
 
-        quality *= 4
+        quality *= 6
 
     }
 
@@ -169,12 +188,12 @@ function generateHeight(width, height) {
 
 }
 
-
-function generateTerrainData() {
+/**
+ *  generate the streets
+ */
+function generateCitySkyline() {
     // space out main route
 
-    // x -> worldWidth;
-    // z -> worldDepth
 
     for (var z = 0; z < worldDepth; z++) {
 
@@ -182,10 +201,26 @@ function generateTerrainData() {
         setY(worldHalfWidth + 1, z, 0);
         setY(worldHalfWidth - 1, z, 0);
 
+
+        if (z % cellWidth == 0) {
+            for (var x = 0; x < worldWidth; x++) {
+
+                setY(x, z + 1, 0);
+                setY(x, z, 0);
+                setY(x, z - 1, 0);
+
+            }
+        }
     }
+
+
 }
 
-function generateTerrain() {
+/**
+ *
+ * create the skyscraper look
+ */
+function addBuildingsToScene() {
 
     for (var z = 0; z < worldDepth; z++) {
 
@@ -203,14 +238,72 @@ function generateTerrain() {
                 shading: THREE.FlatShading
             });
 
+            //boxMaterial.castShadow = true;
+            //boxMaterial.receiveShadow = true;
+
             var box = new THREE.Mesh(boxGeometry, boxMaterial);
-            box.position.set(x * (boxWidth + boxWidth / 4), h/2 , z * (boxDepth + boxDepth / 4));
+            box.position.set(x * (boxWidth + boxWidth / 4), h / 2, z * (boxDepth + boxDepth / 4));
+
 
             scene.add(box);
 
         }
 
     }
+}
+
+/**
+ *
+ * add random point light to scene
+ */
+function addPointLights() {
+
+    for (var i = 0; i < pointLightsCount; i++) {
+
+        var light = new THREE.PointLight(Math.random() * 0xffffff, 1, Math.random() + 50);
+
+        // light.position.set(Math.random() * worldWidth, Math.random() * 100, Math.random() * worldDepth);
+        light.position.x = Math.random() * totalWorldWidth;
+        light.position.y = 10;
+        light.position.z = Math.random() * totalWorldDepth;
+
+        //light.castShadow = true;
+        //
+        //light.shadowCameraNear = 1200;
+        //light.shadowCameraFar = 2500;
+        //light.shadowCameraFov = 50;
+        //
+        ////light.shadowCameraVisible = true;
+        //
+        //light.shadowBias = 0.0001;
+        //
+        //light.shadowMapWidth = SHADOW_MAP_WIDTH;
+        //light.shadowMapHeight = SHADOW_MAP_HEIGHT;
+
+
+        scene.add(light);
+    }
+}
+
+
+/**
+ * add player to scene
+ */
+function setPlayer() {
+
+    // 100, 14.6, 50
+    var geometry = new THREE.SphereGeometry(10, 32, 32);
+    var material = new THREE.MeshPhongMaterial({
+        color: 0xcc0000,
+        specular: 0x444444,
+        shininess: -100, // 30
+        diffuse: 100,
+        shading: THREE.FlatShading
+    });
+
+    var sphere = new THREE.Mesh(geometry, material);
+    sphere.position.set(100, 16, 50);
+    scene.add(sphere);
 }
 
 
@@ -233,6 +326,7 @@ function getY(x, z) {
  * @param v
  */
 function setY(x, z, v) {
+
     data[x + z * worldWidth] = v;
 }
 
@@ -245,8 +339,9 @@ function render() {
     controls.update(clock.getDelta());
     renderer.render(scene, camera);
 
-
     var time = Date.now() * 0.005;
+
+    //console.log(camera.rotation);
 
     //
     //light1.position.x = Math.sin(time * 7) * 30;
@@ -267,4 +362,27 @@ function render() {
     //light4.position.y = Math.cos( time * 0.7 ) * 40;
     //light4.position.z = Math.sin( time * 0.5 ) * 30;
 
+}
+
+/**
+ *
+ * @param id
+ * @param light
+ * @returns {THREE.ShaderMaterial}
+ */
+function createShaderMaterial(id, light) {
+
+    var shader = THREE.ShaderTypes[id];
+
+    var u = THREE.UniformsUtils.clone(shader.uniforms);
+
+    var vs = shader.vertexShader;
+    var fs = shader.fragmentShader;
+
+    var material = new THREE.ShaderMaterial({uniforms: u, vertexShader: vs, fragmentShader: fs});
+
+    material.uniforms.uDirLightPos.value = light.position;
+    material.uniforms.uDirLightColor.value = light.color;
+
+    return material;
 }
