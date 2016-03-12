@@ -60,24 +60,38 @@ function init() {
 
     var terrain =  generateTerrain(sides, shadow, light);
 
-//		var texture = new THREE.TextureLoader().load( 'textures/minecraft/atlas.png' );
-//		texture.magFilter = THREE.NearestFilter;
-//		texture.minFilter = THREE.LinearMipMapLinearFilter;
-//
-//		var mesh = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { map: texture, vertexColors: THREE.VertexColors } ) );
-    var material = new THREE.MeshPhongMaterial( { color: 0xffdddd, specular: 0x009900, shininess: 30, shading: THREE.FlatShading } )
-    var mesh = new THREE.Mesh(terrain, material);
-    scene.add( mesh );
 
-    var ambientLight = new THREE.AmbientLight( 0xcccccc );
+
+    // light
+
+    var ambientLight = new THREE.AmbientLight( 0xffffff );
     scene.add( ambientLight );
 
-    var directionalLight = new THREE.DirectionalLight( 0xffffff, 2 );
+    var directionalLight = new THREE.DirectionalLight( 0xcccccc, 2 );
     directionalLight.position.set( 1, 1, 0.5 ).normalize();
     scene.add( directionalLight );
 
+    // material
+
+    var materialColor = new THREE.Color();
+    materialColor.setRGB(1.0, 0.8, 0.6);
+
+    var phongMaterial = createShaderMaterial("phongDiffuse", directionalLight);
+    phongMaterial.uniforms.uMaterialColor.value.copy(materialColor);
+    phongMaterial.side = THREE.DoubleSide;
+
+    //var material = new THREE.MeshPhongMaterial( { color: 0xffdddd,
+    //    specular: 0x009900,
+    //    shininess: 30,
+    //    shading: THREE.FlatShading } );
+
+    var mesh = new THREE.Mesh(terrain, phongMaterial);
+    scene.add( mesh );
+
+
+
     renderer = new THREE.WebGLRenderer();
-    renderer.setClearColor( 0xffffff );
+    renderer.setClearColor( 0x000000 );
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( width, height);
 
@@ -374,6 +388,25 @@ function getY( x, z ) {
     return ( data[ x + z * worldWidth ] * 0.2 ) | 0;
 
 }
+
+function createShaderMaterial(id, light) {
+
+    var shader = THREE.ShaderTypes[id];
+
+    var u = THREE.UniformsUtils.clone(shader.uniforms);
+
+    var vs = shader.vertexShader;
+    var fs = shader.fragmentShader;
+
+    var material = new THREE.ShaderMaterial({ uniforms: u, vertexShader: vs, fragmentShader: fs });
+
+    material.uniforms.uDirLightPos.value = light.position;
+    material.uniforms.uDirLightColor.value = light.color;
+
+    return material;
+
+}
+
 
 /**
  *
