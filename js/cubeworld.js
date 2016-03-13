@@ -297,7 +297,7 @@ function setPlayer() {
         color: 0xcc0000,
         specular: 0x444444,
         shininess: -100, // 30
-        diffuse: 100,
+        diffuse: 100, // none
         shading: THREE.FlatShading
     });
 
