@@ -17,6 +17,7 @@
   ],
   "dependencies": {
     "three.js": "threejs#*",
-    "jquery": "~2.1.4"
+    "jquery": "~2.1.4",
+    "THREE.TargetCamera": "https://github.com/squarefeet/THREE.TargetCamera.git"
   }
 }

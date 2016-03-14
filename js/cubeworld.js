@@ -1,8 +1,21 @@
+/**
+ * @author Philipp Wahle
+ * @description
+ *
+ * Computergrafik Beleg im SS/WS 1015/16
+ *
+ *
+ * Controls:
+ * m -> Toggle Map view
+ * todo : i -> change or toggle state
+ * w/a/s/d -> move Player
+ * mouse -> look around
+ */
+
 if (!Detector.webgl) {
 
     Detector.addGetWebGLMessage();
     document.getElementById('container').innerHTML = "";
-
 }
 
 
@@ -38,6 +51,15 @@ var directionalLight;
 
 var clock = new THREE.Clock();
 
+var stateMode = 0;
+
+var prevTime = performance.now();
+
+var player = null;
+
+var mousePos = new THREE.Vector2();
+
+var collidableMeshList = [];
 
 init();
 animate();
@@ -55,14 +77,25 @@ function init() {
     // z -> worldDepth
 
     // camera
-    camera = new THREE.PerspectiveCamera(50, width / height, 1, 20000);
-    camera.position.set(100, 14.6, 50);
-    camera.rotation.y = 0;
-    camera.rotation.z = -Math.PI;
+    //camera = new THREE.PerspectiveCamera(50, width / height, 1, 20000);
+    //camera.position.set(100, 14.6, 50);
+    //camera.rotation.y = 0;
+    //camera.rotation.z = -Math.PI;
+    camera = new THREE.TargetCamera(50, width / height, 1, 20000);
 
+
+    // scene
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xefd1b5, 0.0025);
+
+    // player
+    createPlayer();
+
+    // randome events
+    addRandomEvents();
 
     // controls
-    controls = new THREE.FirstPersonControls(camera);
+    controls = new THREE.FirstPersonControls(player);
 
     controls.movementSpeed = 100;
     controls.lookSpeed = 0.125;
@@ -70,11 +103,10 @@ function init() {
     controls.verticalMin = 1.1;
     controls.verticalMax = 2.2;
 
-
-    // scene
-    scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xefd1b5, 0.0025);
-
+    //controls = new ObjectControls( {
+    //    mousePos: mousePos,
+    //    targetObject: player
+    //});
 
     // lights
 
@@ -85,14 +117,15 @@ function init() {
     directionalLight.position.set(1, 1, 0.5).normalize();
     //scene.add(directionalLight);
 
+    // add lights to scene
     addPointLights();
 
     // terrain
     generateCitySkyline();
     addBuildingsToScene();
 
-    // player
-    setPlayer();
+    // keyevent
+    registerKeyEvents();
 
     // renderer
 
@@ -104,7 +137,6 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 
-
     container.innerHTML = "";
 
     container.appendChild(renderer.domElement);
@@ -114,6 +146,7 @@ function init() {
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.top = '0px';
+    //stats.setMode(1);
     container.appendChild(stats.domElement);
 
     window.addEventListener('resize', onWindowResize, false);
@@ -140,19 +173,40 @@ function onWindowResize() {
 
 
 /**
- *  animation funtion
+ *  animation function
  */
 function animate() {
 
     requestAnimationFrame(animate);
 
     render();
-    stats.update();
 
 }
 
+
 /**
- *  create the height of the buildings
+ * check for collision
+ */
+function checkCollision() {
+    var originPoint = player.position.clone();
+
+    for (var vertexIndex = 0; vertexIndex < player.geometry.vertices.length; vertexIndex++) {
+
+        var localVertex = player.geometry.vertices[vertexIndex].clone();
+        var globalVertex = localVertex.applyMatrix4(player.matrix);
+        var directionalVector = globalVertex.sub(player.position);
+
+        var ray = new THREE.Raycaster(originPoint, directionalVector.clone().normalize());
+        var collisionResults = ray.intersectObjects(collidableMeshList);
+
+        if (collisionResults.length > 0 && collisionResults[0].distance < directionalVector.length()) {
+            console.log('hit', collisionResults[0].object.name);
+        }
+    }
+}
+
+/**
+ *  create the height of the buildingsd
  * @param width
  * @param height
  * @returns {Array}
@@ -192,7 +246,6 @@ function generateHeight(width, height) {
  *  generate the streets
  */
 function generateCitySkyline() {
-    // space out main route
 
 
     for (var z = 0; z < worldDepth; z++) {
@@ -244,7 +297,6 @@ function addBuildingsToScene() {
             var box = new THREE.Mesh(boxGeometry, boxMaterial);
             box.position.set(x * (boxWidth + boxWidth / 4), h / 2, z * (boxDepth + boxDepth / 4));
 
-
             scene.add(box);
 
         }
@@ -289,7 +341,10 @@ function addPointLights() {
 /**
  * add player to scene
  */
-function setPlayer() {
+function createPlayer() {
+
+
+    // create Player
 
     // 100, 14.6, 50
     var geometry = new THREE.SphereGeometry(10, 32, 32);
@@ -301,11 +356,153 @@ function setPlayer() {
         shading: THREE.FlatShading
     });
 
-    var sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(100, 16, 50);
-    scene.add(sphere);
+    player = new THREE.Mesh(geometry, material);
+    player.position.set(100, 16, 50);
+    scene.add(player);
+
+    // set camera perspective
+
+    camera.addTarget({
+        name: 'map',
+        targetObject: player,
+        cameraPosition: new THREE.Vector3(0, 200, 20),
+        stiffness: 0.3,
+        fixed: false
+    });
+
+    camera.addTarget({
+        name: 'first',
+        targetObject: player,
+        cameraPosition: new THREE.Vector3(0, 0, 32),
+        stiffness: 0.5,
+        fixed: false
+    });
+
+    camera.setTarget('first');
 }
 
+
+function addRandomEvents() {
+
+    // events
+
+    var zPos = 125;
+    for (var i = 0; i < 8; i++) {
+        var geometry = new THREE.SphereGeometry(10, 20, 20);
+        var material = new THREE.MeshPhongMaterial({
+            color: Math.random() * 0xcccccc,
+            specular: 0xc0c0c0,
+            shininess: 30, // 30
+            shading: THREE.FlatShading
+        });
+
+        var randomEvent = new THREE.Mesh(geometry, material);
+
+        var xPos = i % 2 == 0 ? 30 : 160;
+
+        randomEvent.position.set(xPos, 16, zPos);
+        zPos += (xPos  === 160 ? 125 : 0);
+
+
+        console.log(randomEvent.position);
+        randomEvent.name = 'randomEvent-' + i;
+        collidableMeshList.push(randomEvent);
+        scene.add(randomEvent);
+    }
+
+
+}
+/**
+ *
+ */
+function registerKeyEvents() {
+    var onKeyDown = function (event) {
+
+        console.log(event, event.keyCode);
+
+        switch (event.keyCode) {
+            case 80:
+
+                console.log(player.position);
+                break;
+
+
+            //case 73: // i
+            //    if(++stateMode == 2) {
+            //        stats.setMode(stateMode);
+            //        console.lo^g(stats.);
+            //    } else {
+            //        stateMode = -1;
+            //    }
+            //    stats.update();
+            //
+            //
+            //
+            //break;
+
+            case 77: // m
+
+
+                if (camera.currentTargetName === 'first') {
+                    // change camera
+                    camera.setTarget('map');
+
+                    // remove eventlistener
+                    // document.removeEventListener('mousemove',  onMouseMove, false );
+                    mousePos.set(0, 0);
+
+
+                }
+                else {
+                    camera.setTarget('first');
+
+                    // document.addEventListener( 'mousemove', onMouseMove, false );
+
+                }
+
+                break;
+
+            //case 38: // up
+            //case 87: // w
+            //    moveForward = false;
+            //    break;
+
+            //case 37: // left
+            //case 65: // a
+            //    moveLeft = false;
+            //    break;
+            //
+            //case 40: // down
+            //case 83: // s
+            //    moveBackward = false;
+            //    break;
+            //
+            //case 39: // right
+            //case 68: // d
+            //    moveRight = false;
+            //    break;
+
+        }
+
+    };
+
+    var onKeyUp = function (event) {
+
+        switch (event.keyCode) {
+
+            case 87: // w
+            case 38: // up
+                //controls.setForward(false);
+                break;
+        }
+
+    };
+
+    document.addEventListener('keyup', onKeyUp, false);
+    document.addEventListener('keydown', onKeyDown, false);
+    document.addEventListener('mousemove', onMouseMove, false);
+
+}
 
 /**
  *
@@ -336,10 +533,22 @@ function setY(x, z, v) {
  */
 function render() {
 
+    stats.update();
     controls.update(clock.getDelta());
     renderer.render(scene, camera);
 
-    var time = Date.now() * 0.005;
+    camera.update();
+
+
+    //  var time = Date.now() * 0.005;
+
+    var time = performance.now();
+    var delta = ( time - prevTime ) / 1000;
+
+    animateCamera(delta);
+
+    checkCollision();
+
 
     //console.log(camera.rotation);
 
@@ -361,6 +570,49 @@ function render() {
     //light4.position.x = Math.sin( time * 0.3 ) * 30;
     //light4.position.y = Math.cos( time * 0.7 ) * 40;
     //light4.position.z = Math.sin( time * 0.5 ) * 30;
+
+}
+
+
+/**
+ *
+ * @param event
+ */
+function onMouseMove(event) {
+
+    var x = event.pageX - (window.innerWidth / 2),
+        y = event.pageY - (window.innerHeight / 2),
+        threshold = 15;
+
+    if ((x > 0 && x < threshold) || (x < 0 && x > -threshold)) {
+        x = 0;
+    }
+
+    if ((y > 0 && y < threshold) || (y < 0 && y > -threshold)) {
+        y = 0;
+    }
+
+    mousePos.set(x, y);
+}
+/**
+ *
+ * @param delta
+ */
+function animateCamera(delta) {
+
+    camera.lookAt(player.position);
+    // toggle camera
+    //if(showMap) {
+    //    camera.position.y = 500 ;
+    //   // camera.rotation.y = -Math.PI/2;
+    //
+    //    camera.lookAt( player.position );
+    //
+    // //   console.log(camera.rotation.set(0, -Math.PI /2 , 0));
+    //
+    //}
+
+    //console.log(camera.position, camera.rotation.x, camera.rotation.y, camera.rotation.z);
 
 }
 
