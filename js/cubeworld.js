@@ -49,7 +49,7 @@ var worldWidth = 16,
 var SHADOW_MAP_WIDTH = 2048,
     SHADOW_MAP_HEIGHT = 1024;
 
-var pointLightsCount = 20,
+var pointLightsCount = 40,
     spotLightsCount = 12,// 12,
     directionalLight;
 
@@ -166,7 +166,7 @@ function init() {
     registerKeyEvents();
 
     // particle effects
-    //addParticles();
+    addParticles();
 
 
     // renderer
@@ -217,16 +217,23 @@ function onWindowResize() {
 /**
  *  animation function
  */
+
+var time = 0;
+var delta = 0;
 function animate() {
 
     requestAnimationFrame(animate);
 
-    var time = Date.now() * 0.005;
+    //var time = Date.now() * 0.005;
+    time =  clock.getElapsedTime() * 0.05;
+    delta = clock.getDelta();
+
 
    // var time = performance.now();
-    var delta = ( time - prevTime ) / 1000;
+    //var delta = ( time - prevTime ) / 1000;
 
-    animateCamera(delta);
+
+    animateCamera();
 
 
     checkCollision();
@@ -241,7 +248,9 @@ function animate() {
 
     eventMovePointLights(time);
     eventMoveSpotLights(time);
-    // eventSpawnParticles(clock.getDelta());
+
+  //  console.log('delta', delta, clock.getDelta());
+   // eventSpawnParticles(delta);
 
     render();
 
@@ -584,14 +593,14 @@ function addLightSources() {
                 z : Math.random() * totalWorldDepth
             },
             moveValue: {
-                x: randomRange(-50, 50), // -10, 210
-                y: randomRange(-50, 50), // -25 100
-                z: randomRange(-50, 50) // -10 610
+                x: randomRange(20, 150), // -10, 210
+                y: randomRange(-10, 100), // -25 100
+                z: randomRange(20, 150) // -10 610
             },
             speed: {
-                x: randomRange(.021,.4),
-                y: randomRange(.031,.4),
-                z: randomRange(.081,.4)
+                x: randomRange(.1,10),
+                y: randomRange(.1,10),
+                z: randomRange(.1,10)
             }
 
         };
@@ -939,12 +948,12 @@ function eventMovePointLights(time) {
     if (!randomEvents.movePointLight)  return;
 
     for (var i = 0; i < pointLightsCount; i++) {
-      pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].position.x;
-        pointLights[i].light.position.y = Math.sin(time * pointLights[i].speed.y) * pointLights[i].position.y;
-        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].position.z;
+      pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].moveValue.x  +  pointLights[i].position.x;
+        pointLights[i].light.position.y = Math.sin(time * pointLights[i].speed.y) * pointLights[i].moveValue.y  + pointLights[i].position.y;
+        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z  + pointLights[i].position.z;
 
     }
-  //  console.log( pointLights[0].light.position.x);
+    console.log( time ,pointLights[0].speed.x, time * pointLights[0].speed.x);
 }
 
 /**
