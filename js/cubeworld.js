@@ -49,7 +49,7 @@ var worldWidth = 16,
 var SHADOW_MAP_WIDTH = 2048,
     SHADOW_MAP_HEIGHT = 1024;
 
-var pointLightsCount = 30,
+var pointLightsCount = 20,
     spotLightsCount = 12,// 12,
     directionalLight;
 
@@ -134,7 +134,7 @@ function init() {
     // controls
     controls = new THREE.FirstPersonControls(player);
 
-    controls.movementSpeed = 1000; // 100 -> 1000 toggle on partilces
+    controls.movementSpeed = 100; // 100 -> 1000 toggle on particles
     controls.lookSpeed = 0.125;
     controls.lookVertical = false;
     controls.activeLook = true;
@@ -166,7 +166,7 @@ function init() {
     registerKeyEvents();
 
     // particle effects
-    addParticles();
+    //addParticles();
 
 
     // renderer
@@ -223,11 +223,10 @@ function animate() {
 
     var time = Date.now() * 0.005;
 
-    var time = performance.now();
+   // var time = performance.now();
     var delta = ( time - prevTime ) / 1000;
 
     animateCamera(delta);
-
 
 
     checkCollision();
@@ -242,7 +241,7 @@ function animate() {
 
     eventMovePointLights(time);
     eventMoveSpotLights(time);
-    eventSpawnParticles(clock.getDelta());
+    // eventSpawnParticles(clock.getDelta());
 
     render();
 
@@ -279,6 +278,7 @@ function checkCollision() {
 
         if (collisionResults.length > 0 && collisionResults[0].distance < directionalVector.length()) {
 
+
             triggerRandomEvent(collisionResults[0].object.name);
         }
         else {
@@ -290,7 +290,6 @@ function checkCollision() {
 
 var currentCollision = null,
     oldCollision = null;
-
 /**
  *  trigger random event on collision
  * @param name
@@ -298,10 +297,10 @@ var currentCollision = null,
 function triggerRandomEvent(name) {
 
     // check if is intersecting
-    if (isIntersecting(name)) return;
+    if (isIntersecting(name) ) return;
 
     // trigger Event
-    //console.log('hit', name, currentCollision);
+   // console.log('hit', name, currentCollision);
 
     switch (name) {
         case 'randomEvent-0' :
@@ -570,9 +569,7 @@ function addLightSources() {
         var light = new THREE.PointLight(Math.random() * 0xffffff, 1, Math.random() + 50);
 
         // light.position.set(Math.random() * worldWidth, Math.random() * 100, Math.random() * worldDepth);
-        light.position.x = Math.random() * totalWorldWidth;
-        light.position.y = 10;
-        light.position.z = Math.random() * totalWorldDepth;
+
 
         var sphereSize = 1;
         var pointLightHelper = new THREE.PointLightHelper(light, sphereSize);
@@ -581,18 +578,27 @@ function addLightSources() {
         var pointLightSetting = {
             light: light,
             helper: pointLightHelper,
+            position : {
+                x :  Math.random() * totalWorldWidth,
+                y : randomRange(0, 100),
+                z : Math.random() * totalWorldDepth
+            },
             moveValue: {
-                x: Math.random() * 200 - 100,
-                y: Math.random() * 200 - 100,
-                z: Math.random() * 200 - 100
+                x: randomRange(-50, 50), // -10, 210
+                y: randomRange(-50, 50), // -25 100
+                z: randomRange(-50, 50) // -10 610
             },
             speed: {
-                x: Math.random() * 0.0005 - 0.00025,
-                y: Math.random() * 0.0005 - 0.00025,
-                z: Math.random() * 0.0005 - 0.00025
+                x: randomRange(.021,.4),
+                y: randomRange(.031,.4),
+                z: randomRange(.081,.4)
             }
 
         };
+
+        light.position.x = pointLightSetting.position.x;
+        light.position.y = pointLightSetting.position.y;
+        light.position.z = pointLightSetting.position.z;
 
         pointLights.push(pointLightSetting);
 
@@ -618,9 +624,9 @@ function addLightSources() {
 
     var step = 612 / spotLightsCount;
     for (var i = 0; i < spotLightsCount; i++) {
-        var spotLight = new THREE.SpotLight(Math.random() * 0xffffff, Math.random() * 20 + 10, Math.random() * 20 + 50);
-        var spotLightHelper = new THREE.SpotLightHelper(spotLight);
+        var spotLight = new THREE.SpotLight(Math.random() * 0xffffff, Math.random(), Math.random() * 25 + 75); // Math.random() * 20
 
+        var spotLightHelper = new THREE.SpotLightHelper(spotLight);
 
         var spotLightSetting = {
             light: spotLight,
@@ -638,8 +644,9 @@ function addLightSources() {
 
         };
 
+/// range Math.PI * 0.25 - Math.PI * 1.5
+        spotLight.rotation.z = randomRange(Math.PI * 0.25, Math.PI * 1.5);
 
-        spotLight.rotation.z = Math.random() * (Math.PI * 2) - Math.PI;
         spotLights.push(spotLightSetting);
 
         spotLight.position.set(100, 5, step * (i + 1));
@@ -651,6 +658,11 @@ function addLightSources() {
     }
 
 
+}
+
+
+function randomRange(min, max) {
+    return min + (Math.random() * ((max - min) + 1));
 }
 
 
@@ -927,10 +939,12 @@ function eventMovePointLights(time) {
     if (!randomEvents.movePointLight)  return;
 
     for (var i = 0; i < pointLightsCount; i++) {
-        pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].moveValue.x;
-        // pointLights[i].light.position.y = Math.cos(time * pointLights[i].speed.y) * pointLights[i].moveValue.y;
-        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z;
+      pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].position.x;
+        pointLights[i].light.position.y = Math.sin(time * pointLights[i].speed.y) * pointLights[i].position.y;
+        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].position.z;
+
     }
+  //  console.log( pointLights[0].light.position.x);
 }
 
 /**
@@ -955,16 +969,16 @@ function eventSpawnParticles(delta) {
 
     tick += d;
 
-    if(tick < 0) {
+    if (tick < 0) {
         tick = 0;
     }
 
-    if(d > 0) {
+    if (d > 0) {
         particleOptions.position.x = Math.sin(tick * spawnerOptions.horizontalSpeed) * 50;
         particleOptions.position.y = Math.sin(tick * spawnerOptions.verticalSpeed) * 20;
         particleOptions.position.z = Math.sin(tick * spawnerOptions.horizontalSpeed + spawnerOptions.verticalSpeed) * 10;
 
-        for(var i = 0; i < spawnerOptions.spawnRate * d; i++) {
+        for (var i = 0; i < spawnerOptions.spawnRate * d; i++) {
             particleSystem.spawnParticle(particleOptions);
         }
     }
