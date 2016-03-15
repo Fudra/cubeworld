@@ -74,7 +74,28 @@ var randomEvents = {
     moveSpotLight: false,
 };
 
+var particleSystem,
+    maxParticles = 500;
 
+var particleOptions = {
+    position: new THREE.Vector3(),
+    positionRandomness: .3,
+    velocity: new THREE.Vector3(),
+    velocityRandomness: .5,
+    color: 0xaa88ff,
+    colorRandomness: .2,
+    turbulence: .5,
+    lifetime: 2,
+    size: 5,
+    sizeRandomness: 1
+};
+
+var spawnerOptions = {
+    spawnRate: 1000,
+    horizontalSpeed: 1.5,
+    verticalSpeed: 1.33,
+    timeScale: 1
+};
 
 
 init();
@@ -113,7 +134,7 @@ function init() {
     // controls
     controls = new THREE.FirstPersonControls(player);
 
-    controls.movementSpeed = 100;
+    controls.movementSpeed = 1000; // 100 -> 1000 toggle on partilces
     controls.lookSpeed = 0.125;
     controls.lookVertical = false;
     controls.activeLook = true;
@@ -143,6 +164,9 @@ function init() {
 
     // keyevent
     registerKeyEvents();
+
+    // particle effects
+    addParticles();
 
 
     // renderer
@@ -197,10 +221,44 @@ function animate() {
 
     requestAnimationFrame(animate);
 
+    var time = Date.now() * 0.005;
+
+    var time = performance.now();
+    var delta = ( time - prevTime ) / 1000;
+
+    animateCamera(delta);
+
+
+
+    checkCollision();
+
+    // spotLights[0].rotation.y = Math.cos(time * .00123 ) + Math.PI ;
+
+
+    //console.log(camera.rotation);
+
+
+// random events that can occur
+
+    eventMovePointLights(time);
+    eventMoveSpotLights(time);
+    eventSpawnParticles(clock.getDelta());
+
     render();
 
 }
 
+
+/**
+ * particle sytems
+ */
+function addParticles() {
+    particleSystem = new THREE.GPUParticleSystem({
+        maxParticles: maxParticles
+    });
+
+    scene.add(particleSystem);
+}
 
 /**
  * check for collision
@@ -462,11 +520,11 @@ function addBuildingsToScene() {
                     z: boxDepth
                 },
                 jiggle: {
-                    value : {
+                    value: {
                         x: boxX,
                         z: boxZ
                     },
-                    amount : {
+                    amount: {
                         x: jiggleX,
                         z: jiggleZ
                     }
@@ -857,27 +915,6 @@ function render() {
 
     camera.update();
 
-
-    //  var time = Date.now() * 0.005;
-
-    var time = performance.now();
-    var delta = ( time - prevTime ) / 1000;
-
-    animateCamera(delta);
-
-    checkCollision();
-
-    // spotLights[0].rotation.y = Math.cos(time * .00123 ) + Math.PI ;
-
-
-    //console.log(camera.rotation);
-
-
-// random events that can occur
-
-    eventMovePointLights(time);
-    eventMoveSpotLights(time);
-
 }
 
 
@@ -911,6 +948,29 @@ function eventMoveSpotLights(time) {
     }
 }
 
+var tick = 0;
+function eventSpawnParticles(delta) {
+
+    var d = delta * spawnerOptions.timeScale;
+
+    tick += d;
+
+    if(tick < 0) {
+        tick = 0;
+    }
+
+    if(d > 0) {
+        particleOptions.position.x = Math.sin(tick * spawnerOptions.horizontalSpeed) * 50;
+        particleOptions.position.y = Math.sin(tick * spawnerOptions.verticalSpeed) * 20;
+        particleOptions.position.z = Math.sin(tick * spawnerOptions.horizontalSpeed + spawnerOptions.verticalSpeed) * 10;
+
+        for(var i = 0; i < spawnerOptions.spawnRate * d; i++) {
+            particleSystem.spawnParticle(particleOptions);
+        }
+    }
+
+    particleSystem.update(tick);
+}
 
 /**
  *
