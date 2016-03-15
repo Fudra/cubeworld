@@ -72,6 +72,8 @@ var collidableMeshList = [],
 var randomEvents = {
     movePointLight: false,
     moveSpotLight: false,
+    spawnParticles: false,
+    playAudioVideo: false
 };
 
 var particleSystem,
@@ -83,18 +85,18 @@ var particleOptions = {
     velocity: new THREE.Vector3(),
     velocityRandomness: .5,
     color: 0xaa88ff,
-    colorRandomness: .2,
-    turbulence: .5,
-    lifetime: 2,
-    size: 5,
-    sizeRandomness: 1
+    colorRandomness: .5, // .2
+    turbulence: 2, // .5
+    lifetime: 4, // 2
+    size: 10, // 5
+    sizeRandomness: 5 //1
 };
 
 var spawnerOptions = {
     spawnRate: 1000,
-    horizontalSpeed: 1.5,
-    verticalSpeed: 1.33,
-    timeScale: 1
+    horizontalSpeed: 1.75, // 1.5
+    verticalSpeed: 1.5, // 1.33
+    timeScale: 4000
 };
 
 
@@ -134,7 +136,7 @@ function init() {
     // controls
     controls = new THREE.FirstPersonControls(player);
 
-    controls.movementSpeed = 100; // 100 -> 1000 toggle on particles
+    controls.movementSpeed = 100;
     controls.lookSpeed = 0.125;
     controls.lookVertical = false;
     controls.activeLook = true;
@@ -225,23 +227,17 @@ function animate() {
     requestAnimationFrame(animate);
 
     //var time = Date.now() * 0.005;
-    time =  clock.getElapsedTime() * 0.05;
+    time = clock.getElapsedTime() * 0.05;
     delta = clock.getDelta();
 
 
-   // var time = performance.now();
+    // var time = performance.now();
     //var delta = ( time - prevTime ) / 1000;
-
-
+    
     animateCamera();
 
 
     checkCollision();
-
-    // spotLights[0].rotation.y = Math.cos(time * .00123 ) + Math.PI ;
-
-
-    //console.log(camera.rotation);
 
 
 // random events that can occur
@@ -249,8 +245,8 @@ function animate() {
     eventMovePointLights(time);
     eventMoveSpotLights(time);
 
-  //  console.log('delta', delta, clock.getDelta());
-   // eventSpawnParticles(delta);
+    //  console.log('delta', delta, clock.getDelta());
+    eventSpawnParticles(delta);
 
     render();
 
@@ -265,7 +261,19 @@ function addParticles() {
         maxParticles: maxParticles
     });
 
-    scene.add(particleSystem);
+    particleSystem.position.set(100, 0, 250);
+
+}
+
+
+function toggleParticles(add) {
+    if(add)
+    {
+        scene.add(particleSystem);
+    }
+    else {
+        scene.remove(particleSystem);
+    }
 }
 
 /**
@@ -306,10 +314,10 @@ var currentCollision = null,
 function triggerRandomEvent(name) {
 
     // check if is intersecting
-    if (isIntersecting(name) ) return;
+    if (isIntersecting(name)) return;
 
     // trigger Event
-   // console.log('hit', name, currentCollision);
+    // console.log('hit', name, currentCollision);
 
     switch (name) {
         case 'randomEvent-0' :
@@ -320,10 +328,12 @@ function triggerRandomEvent(name) {
             break;
 
         case 'randomEvent-2' :
+            eventStartParticles();
             //eventStartMoveingSpotLights();
             break;
 
         case 'randomEvent-3' :
+            eventStopParticles();
             //  eventStopMoveingSpotLights();
             break;
 
@@ -361,6 +371,17 @@ function eventStartMoveingSpotLights() {
 
 function eventStopMoveingSpotLights() {
     randomEvents.moveSpotLight = false;
+}
+
+function eventStartParticles() {
+    randomEvents.spawnParticles = true;
+    toggleParticles(true);
+}
+
+function eventStopParticles() {
+    randomEvents.spawnParticles = false;
+
+    toggleParticles(false);
 }
 
 /**
@@ -587,10 +608,10 @@ function addLightSources() {
         var pointLightSetting = {
             light: light,
             helper: pointLightHelper,
-            position : {
-                x :  Math.random() * totalWorldWidth,
-                y : randomRange(0, 100),
-                z : Math.random() * totalWorldDepth
+            position: {
+                x: Math.random() * totalWorldWidth,
+                y: randomRange(0, 100),
+                z: Math.random() * totalWorldDepth
             },
             moveValue: {
                 x: randomRange(20, 150), // -10, 210
@@ -598,9 +619,9 @@ function addLightSources() {
                 z: randomRange(20, 150) // -10 610
             },
             speed: {
-                x: randomRange(.1,10),
-                y: randomRange(.1,10),
-                z: randomRange(.1,10)
+                x: randomRange(.1, 10),
+                y: randomRange(.1, 10),
+                z: randomRange(.1, 10)
             }
 
         };
@@ -653,7 +674,6 @@ function addLightSources() {
 
         };
 
-/// range Math.PI * 0.25 - Math.PI * 1.5
         spotLight.rotation.z = randomRange(Math.PI * 0.25, Math.PI * 1.5);
 
         spotLights.push(spotLightSetting);
@@ -832,19 +852,6 @@ function registerKeyEvents() {
                 break;
 
 
-            //case 73: // i
-            //    if(++stateMode == 2) {
-            //        stats.setMode(stateMode);
-            //        console.log(stats.);
-            //    } else {
-            //        stateMode = -1;
-            //    }
-            //    stats.update();
-            //
-            //
-            //
-            //break;
-
             case 77: // m
 
 
@@ -862,26 +869,6 @@ function registerKeyEvents() {
                 }
 
                 break;
-
-            //case 38: // up
-            //case 87: // w
-            //    moveForward = false;
-            //    break;
-
-            //case 37: // left
-            //case 65: // a
-            //    moveLeft = false;
-            //    break;
-            //
-            //case 40: // down
-            //case 83: // s
-            //    moveBackward = false;
-            //    break;
-            //
-            //case 39: // right
-            //case 68: // d
-            //    moveRight = false;
-            //    break;
 
         }
 
@@ -948,12 +935,12 @@ function eventMovePointLights(time) {
     if (!randomEvents.movePointLight)  return;
 
     for (var i = 0; i < pointLightsCount; i++) {
-      pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].moveValue.x  +  pointLights[i].position.x;
-        pointLights[i].light.position.y = Math.sin(time * pointLights[i].speed.y) * pointLights[i].moveValue.y  + pointLights[i].position.y;
-        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z  + pointLights[i].position.z;
+        pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].moveValue.x + pointLights[i].position.x;
+        pointLights[i].light.position.y = Math.sin(time * pointLights[i].speed.y) * pointLights[i].moveValue.y + pointLights[i].position.y;
+        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z + pointLights[i].position.z;
 
     }
-    console.log( time ,pointLights[0].speed.x, time * pointLights[0].speed.x);
+    //console.log( time ,pointLights[0].speed.x, time * pointLights[0].speed.x);
 }
 
 /**
@@ -974,6 +961,8 @@ function eventMoveSpotLights(time) {
 var tick = 0;
 function eventSpawnParticles(delta) {
 
+    if(!randomEvents.spawnParticles) return;
+
     var d = delta * spawnerOptions.timeScale;
 
     tick += d;
@@ -983,14 +972,16 @@ function eventSpawnParticles(delta) {
     }
 
     if (d > 0) {
-        particleOptions.position.x = Math.sin(tick * spawnerOptions.horizontalSpeed) * 50;
-        particleOptions.position.y = Math.sin(tick * spawnerOptions.verticalSpeed) * 20;
-        particleOptions.position.z = Math.sin(tick * spawnerOptions.horizontalSpeed + spawnerOptions.verticalSpeed) * 10;
+        particleOptions.position.x = Math.sin(tick * spawnerOptions.horizontalSpeed) * 20;
+        particleOptions.position.y = Math.sin(tick * spawnerOptions.verticalSpeed) * 40;
+        particleOptions.position.z = Math.sin(tick * spawnerOptions.horizontalSpeed + spawnerOptions.verticalSpeed) * 5;
 
         for (var i = 0; i < spawnerOptions.spawnRate * d; i++) {
             particleSystem.spawnParticle(particleOptions);
         }
     }
+
+    // console.log('particle', d, tick);
 
     particleSystem.update(tick);
 }
