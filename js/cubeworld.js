@@ -70,8 +70,12 @@ var collidableMeshList = [],
 
 
 var randomEvents = {
-    moveLight: false
+    movePointLight: false,
+    moveSpotLight: false,
 };
+
+
+
 
 init();
 animate();
@@ -112,7 +116,7 @@ function init() {
     controls.movementSpeed = 100;
     controls.lookSpeed = 0.125;
     controls.lookVertical = false;
-    controls.activeLook = true; // TODO:!!
+    controls.activeLook = true;
     controls.verticalMin = 1.1;
     controls.verticalMax = 2.2;
 
@@ -139,6 +143,7 @@ function init() {
 
     // keyevent
     registerKeyEvents();
+
 
     // renderer
 
@@ -228,20 +233,46 @@ function checkCollision() {
 var currentCollision = null,
     oldCollision = null;
 
-function triggerRandomEvent(name)  {
+/**
+ *  trigger random event on collision
+ * @param name
+ */
+function triggerRandomEvent(name) {
 
     // check if is intersecting
-    if(isIntersecting(name)) return;
+    if (isIntersecting(name)) return;
 
     // trigger Event
     //console.log('hit', name, currentCollision);
 
     switch (name) {
         case 'randomEvent-0' :
-            eventStartMoveingLights();
+            eventStartMoveingPointLights();
             break;
         case 'randomEvent-1' :
-            eventStopMoveingLights();
+            eventStopMoveingPointLights();
+            break;
+
+        case 'randomEvent-2' :
+            //eventStartMoveingSpotLights();
+            break;
+
+        case 'randomEvent-3' :
+            //  eventStopMoveingSpotLights();
+            break;
+
+        case 'randomEvent-4' :
+            break;
+
+        case 'randomEvent-5' :
+            break;
+
+        case 'randomEvent-6' :
+            eventJiggleBuildings();
+            break;
+
+        case 'randomEvent-7' :
+            eventChangeBuildings();
             break;
     }
 
@@ -250,12 +281,49 @@ function triggerRandomEvent(name)  {
 
 }
 
-function eventStartMoveingLights() {
-    randomEvents.moveLight = true;
+function eventStartMoveingPointLights() {
+    randomEvents.movePointLight = true;
 }
 
-function eventStopMoveingLights() {
-    randomEvents.moveLight = false;
+function eventStopMoveingPointLights() {
+    randomEvents.movePointLight = false;
+}
+
+function eventStartMoveingSpotLights() {
+    randomEvents.moveSpotLight = true;
+}
+
+function eventStopMoveingSpotLights() {
+    randomEvents.moveSpotLight = false;
+}
+
+/**
+ * change the building size on event
+ */
+function eventChangeBuildings() {
+
+    for (var i = 0; i < blocks.length; i++) {
+
+        var factor = Math.random();
+        blocks[i].geometry.scale.y = factor + .5; //* 2 - 1
+        blocks[i].geometry.position.y = (blocks[i].size.y * factor) / 2;
+
+    }
+
+}
+
+
+/**
+ * jiggle the building position on event
+ */
+function eventJiggleBuildings() {
+    for (var i = 0; i < blocks.length; i++) {
+
+        blocks[i].geometry.position.x = jiggle(blocks[i].jiggle.value.x, blocks[i].jiggle.amount.x);
+        blocks[i].geometry.position.z = jiggle(blocks[i].jiggle.value.z, blocks[i].jiggle.amount.z);
+
+
+    }
 }
 
 
@@ -264,10 +332,10 @@ function eventStopMoveingLights() {
  * @param name
  */
 function setCollisionTarget(name) {
-    if(currentCollision != name) {
+    if (currentCollision != name) {
         oldCollision = currentCollision;
         currentCollision = name;
-       // console.log('col', oldCollision, currentCollision);
+        // console.log('col', oldCollision, currentCollision);
     }
 
 }
@@ -306,8 +374,8 @@ function generateHeight(width, height) {
 
         for (var i = 0; i < size; i++) {
 
-            var x =  i * Math.random() * 2 - 1;//  i % width,
-                y =  ( i / width ) | 0;
+            var x = i * Math.random() * 2 - 1;//  i % width,
+            y = ( i / width ) | 0;
             data[i] += Math.abs(perlin.noise(x / quality, y / quality, z) * quality) + minHeight;
         }
 
@@ -351,8 +419,8 @@ function generateCitySkyline() {
 function addBuildingsToScene() {
 
 
-    var boxSpacingWidth =  boxWidth / 3;
-    var boxSpacingDepth =  boxDepth / 3;
+    var boxSpacingWidth = boxWidth / 3;
+    var boxSpacingDepth = boxDepth / 3;
 
     for (var z = 0; z < worldDepth; z++) {
 
@@ -363,7 +431,7 @@ function addBuildingsToScene() {
             if (h === 0) continue;
 
             var boxGeometry = new THREE.BoxGeometry(
-                boxWidth ,//+ Math.random() * boxWidth/2 - boxWidth/4,
+                boxWidth,//+ Math.random() * boxWidth/2 - boxWidth/4,
                 h,
                 boxDepth); // + Math.random() * boxDepth/2 - boxDepth/4);
 
@@ -381,9 +449,33 @@ function addBuildingsToScene() {
             var boxX = x * (boxWidth + boxWidth / 4);
             var boxZ = z * (boxDepth + boxDepth / 4);
 
-            box.position.set(jiggle(boxX, boxSpacingWidth/1.2546), h / 2, jiggle(boxZ, boxSpacingDepth/1.2546));
+            var jiggleX = boxSpacingWidth / 1.2546;
+            var jiggleZ = boxSpacingDepth / 1.2546;
 
-            blocks.push(box);
+            box.position.set(jiggle(boxX, jiggleX), h / 2, jiggle(boxZ, jiggleZ));
+
+            var blockSettings = {
+                geometry: box,
+                size: {
+                    x: boxWidth,
+                    y: h,
+                    z: boxDepth
+                },
+                jiggle: {
+                    value : {
+                        x: boxX,
+                        z: boxZ
+                    },
+                    amount : {
+                        x: jiggleX,
+                        z: jiggleZ
+                    }
+
+
+                }
+            };
+
+            blocks.push(blockSettings);
 
             scene.add(box);
 
@@ -400,7 +492,7 @@ function addBuildingsToScene() {
  */
 function jiggle(value, amout) {
     var a2 = amout * 2;
-    var ran  = Math.random() * a2 - amout;
+    var ran = Math.random() * a2 - amout;
 
     return value + ran;
 
@@ -413,7 +505,7 @@ function jiggle(value, amout) {
 function addLightSources() {
 
     //var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
-  //  scene.add( light );
+    //  scene.add( light );
 
     for (var i = 0; i < pointLightsCount; i++) {
 
@@ -425,21 +517,21 @@ function addLightSources() {
         light.position.z = Math.random() * totalWorldDepth;
 
         var sphereSize = 1;
-        var pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
+        var pointLightHelper = new THREE.PointLightHelper(light, sphereSize);
 
 
         var pointLightSetting = {
-            light : light,
+            light: light,
             helper: pointLightHelper,
-            moveValue : {
-                x : Math.random() * 200 - 100,
-                y : Math.random() * 200 - 100,
-                z : Math.random() * 200 - 100
+            moveValue: {
+                x: Math.random() * 200 - 100,
+                y: Math.random() * 200 - 100,
+                z: Math.random() * 200 - 100
             },
-            speed : {
-                x : Math.random() * 0.0005 - 0.00025,
-                y : Math.random() * 0.0005 - 0.00025,
-                z : Math.random() * 0.0005 - 0.00025
+            speed: {
+                x: Math.random() * 0.0005 - 0.00025,
+                y: Math.random() * 0.0005 - 0.00025,
+                z: Math.random() * 0.0005 - 0.00025
             }
 
         };
@@ -447,8 +539,7 @@ function addLightSources() {
         pointLights.push(pointLightSetting);
 
 
-
-       // scene.add(pointLightHelper);
+        // scene.add(pointLightHelper);
 
         //light.castShadow = true;
         //
@@ -464,36 +555,36 @@ function addLightSources() {
         //light.shadowMapHeight = SHADOW_MAP_HEIGHT;
 
 
-         scene.add(light);
+        scene.add(light);
     }
 
     var step = 612 / spotLightsCount;
-    for(var i = 0; i<spotLightsCount; i++) {
-        var spotLight = new THREE.SpotLight( Math.random() * 0xffffff, Math.random() * 10, 50  );
+    for (var i = 0; i < spotLightsCount; i++) {
+        var spotLight = new THREE.SpotLight(Math.random() * 0xffffff, Math.random() * 20 + 10, Math.random() * 20 + 50);
         var spotLightHelper = new THREE.SpotLightHelper(spotLight);
 
 
         var spotLightSetting = {
-            light : spotLight,
+            light: spotLight,
             helper: spotLightHelper,
-            moveValue : {
-                x : Math.random() * 200 - 100,
-                y : Math.random() * 200 - 100,
-                z : Math.random() * 200 - 100
+            moveValue: {
+                x: Math.random() * 200 - 100,
+                y: Math.random() * 200 - 100,
+                z: Math.random() * 200 - 100
             },
-            speed : {
-                x : Math.random() * 0.0005 - 0.00025,
-                y : Math.random() * 0.0005 - 0.00025,
-                z : Math.random() * 0.0005 - 0.00025
+            speed: {
+                x: Math.random() * 0.0005 - 0.00025,
+                y: Math.random() * 0.0005 - 0.00025,
+                z: Math.random() * 0.0005 - 0.00025
             }
 
         };
 
 
-        spotLight.rotation.z = Math.PI;
+        spotLight.rotation.z = Math.random() * (Math.PI * 2) - Math.PI;
         spotLights.push(spotLightSetting);
 
-        spotLight.position.set(100, 5, step * (i+1));
+        spotLight.position.set(100, 5, step * (i + 1));
 
         scene.add(spotLight);
         //scene.add(spotLightHelper);
@@ -514,7 +605,7 @@ function createPlayer() {
     // create Player
 
     // 100, 14.6, 50
-    var geometry = new THREE.SphereGeometry(10/3, 32, 32);
+    var geometry = new THREE.SphereGeometry(10 / 3, 32, 32);
     var material = new THREE.MeshPhongMaterial({
         color: 0xcc0000,
         specular: 0x444444,
@@ -550,7 +641,7 @@ function createPlayer() {
 
 
 /**
- * playsment of random events
+ * placement of random events
  */
 function addRandomEvents() {
 
@@ -571,7 +662,7 @@ function addRandomEvents() {
         var xPos = i % 2 == 0 ? 30 : 160;
 
         randomEvent.position.set(xPos, 16, zPos);
-        zPos += (xPos  === 160 ? 125 : 0);
+        zPos += (xPos === 160 ? 125 : 0);
 
 
         console.log(randomEvent.position);
@@ -588,17 +679,17 @@ var showPointLightHelper = false;
  *
  */
 function togglePointLightHelper() {
-    if(showPointLightHelper) {
+    if (showPointLightHelper) {
         showPointLightHelper = false;
 
-        for(var i = 0; i < pointLightsCount; i++) {
+        for (var i = 0; i < pointLightsCount; i++) {
             scene.remove(pointLights[i].helper)
         }
 
     } else {
         showPointLightHelper = true;
 
-        for(var i = 0; i < pointLightsCount; i++) {
+        for (var i = 0; i < pointLightsCount; i++) {
             scene.add(pointLights[i].helper)
         }
     }
@@ -608,12 +699,7 @@ function togglePointLightHelper() {
  *
  */
 function toggleMouseMove() {
-    if(controls.activeLook) {
-        controls.activeLook = false
-    }
-    else  {
-        controls.activeLook = true;
-    }
+    controls.activeLook = !controls.activeLook;
 }
 
 var showSpotLightHelper = false;
@@ -623,17 +709,17 @@ var showSpotLightHelper = false;
  */
 function toggleSpotLightHelper() {
 
-    if(showSpotLightHelper) {
+    if (showSpotLightHelper) {
         showSpotLightHelper = false;
 
-        for(var i = 0; i < spotLightsCount; i++) {
+        for (var i = 0; i < spotLightsCount; i++) {
             scene.remove(spotLights[i].helper)
         }
 
     } else {
         showSpotLightHelper = true;
 
-        for(var i = 0; i < spotLightsCount; i++) {
+        for (var i = 0; i < spotLightsCount; i++) {
             scene.add(spotLights[i].helper)
         }
     }
@@ -649,8 +735,7 @@ function registerKeyEvents() {
 
         switch (event.keyCode) {
 
-
-            case 48: // 1
+            case 48: // 0
                 toggleMouseMove();
                 break;
 
@@ -671,7 +756,7 @@ function registerKeyEvents() {
             //case 73: // i
             //    if(++stateMode == 2) {
             //        stats.setMode(stateMode);
-            //        console.lo^g(stats.);
+            //        console.log(stats.);
             //    } else {
             //        stateMode = -1;
             //    }
@@ -685,19 +770,15 @@ function registerKeyEvents() {
 
 
                 if (camera.currentTargetName === 'first') {
+
                     // change camera
                     camera.setTarget('map');
-
-                    // remove eventlistener
-                    // document.removeEventListener('mousemove',  onMouseMove, false );
-                    mousePos.set(0, 0);
+                    //  mousePos.set(0, 0);
 
 
                 }
                 else {
                     camera.setTarget('first');
-
-                    // document.addEventListener( 'mousemove', onMouseMove, false );
 
                 }
 
@@ -786,16 +867,16 @@ function render() {
 
     checkCollision();
 
-   // spotLights[0].rotation.y = Math.cos(time * .00123 ) + Math.PI /2 ;
+    // spotLights[0].rotation.y = Math.cos(time * .00123 ) + Math.PI ;
 
 
     //console.log(camera.rotation);
 
 
-
 // random events that can occur
 
     eventMovePointLights(time);
+    eventMoveSpotLights(time);
 
 }
 
@@ -806,12 +887,27 @@ function render() {
  */
 function eventMovePointLights(time) {
 
-    if(!randomEvents.moveLight)  return;
+    if (!randomEvents.movePointLight)  return;
 
-    for(var i = 0; i < pointLightsCount; i++) {
+    for (var i = 0; i < pointLightsCount; i++) {
         pointLights[i].light.position.x = Math.sin(time * pointLights[i].speed.x) * pointLights[i].moveValue.x;
-        pointLights[i].light.position.y = Math.cos(time * pointLights[i].speed.y) * pointLights[i].moveValue.y;
-        pointLights[i].light.position.y = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z;
+        // pointLights[i].light.position.y = Math.cos(time * pointLights[i].speed.y) * pointLights[i].moveValue.y;
+        pointLights[i].light.position.z = Math.cos(time * pointLights[i].speed.z) * pointLights[i].moveValue.z;
+    }
+}
+
+/**
+ * event
+ * move light around the scene
+ */
+function eventMoveSpotLights(time) {
+
+    if (!randomEvents.moveSpotLight)  return;
+
+    for (var i = 0; i < spotLightsCount; i++) {
+        //spotLights[i].light.rotation.x = Math.sin(time * spotLights[i].speed.x) * spotLights[i].moveValue.x;
+        // spotLights[i].light.rotation.y = Math.cos(time * spotLights[i].speed.y) * spotLights[i].moveValue.y;
+        spotLights[i].light.rotation.z = Math.cos(time * spotLights[i].speed.z) * spotLights[i].moveValue.z;
     }
 }
 
