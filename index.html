@@ -3,9 +3,37 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Cubeworld</title>
-	<link rel="stylesheet" href="css/styles.css">
+	<link rel="stylesheet"
+	      href="css/styles.css">
 </head>
 <body>
+
+<div id="modal">
+	<div class="info">
+
+		<h2>Computergrafik Beleg</h2>
+
+		<h3>Tastatursteuerung</h3>
+		<ul class="controls">
+			<li>m -> Toggle Map-view</li>
+			<li> w/a/s/d -> move player</li>
+			<li> mouse -> look around</li>
+			<li class="empty-item"></li>
+			<li>1 -> toggle point Light helper</li>
+			<li>2 -> toggle spot light helper</li>
+			<li>9 -> toggle sounds</li>
+			<li>0 -> toggle Mouse Lock</li>
+			<li class="empty-item"></li>
+			<li>h -> toggle help</li>
+		</ul>
+
+		<div class="footer">
+			WS/SS 2016 - Philipp Wahle
+		</div>
+
+
+	</div>
+</div>
 
 <div id="container">
 	<h1>Loading....</h1>
@@ -25,9 +53,8 @@
 <!--<script src="js/script.js"></script>-->
 
 
-
-
-<script id="vertexShader" type="x-shader/x-vertex">
+<script id="vertexShader"
+        type="x-shader/x-vertex">
     	varying vec2 vUv;
 
     	void main()
@@ -37,8 +64,10 @@
     		gl_Position = projectionMatrix * mvPosition;
     	}
 
+
 </script>
-<script id="fragmentShader" type="x-shader/x-fragment">
+<script id="fragmentShader"
+        type="x-shader/x-fragment">
     	uniform sampler2D texture;
 
     	varying vec2 vUv;
@@ -52,6 +81,7 @@
     	    //gl_FragColor = vec4(tColor, a);
     	    gl_FragColor = vec4(tColor,a);
     	}
+
 
 </script>
 

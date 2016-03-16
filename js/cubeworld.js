@@ -972,6 +972,9 @@ function registerKeyEvents() {
                 console.log(player.position);
                 break;
 
+            case  72: // h
+                toggleHelpWindow();
+                break;
 
             case 77: // m
 
@@ -1007,6 +1010,26 @@ function registerKeyEvents() {
     document.addEventListener('keydown', onKeyDown, false);
     document.addEventListener('mousemove', onMouseMove, false);
 
+}
+
+
+var isModalOpen = true;
+/**
+ * toggle help window
+ */
+function toggleHelpWindow() {
+
+    var modal = document.getElementById('modal');
+  if(isModalOpen) {
+
+      isModalOpen = false;
+      modal.className = 'hide';
+
+  }
+    else {
+      isModalOpen = true;
+      modal.className = '';
+  }
 }
 
 /**
