@@ -13,6 +13,7 @@
  * 1 ->  toggle point Light Helper
  * 2 -> toggle spot light helper
  * 0 -> toggle Mouse Lock
+ * 9 -> toggle sounds
  */
 
 if (!Detector.webgl) {
@@ -67,6 +68,12 @@ var collidableMeshList = [],
     pointLights = [],
     spotLights = [],
     blocks = [];
+
+
+var videoElement,
+    video,
+    videotexture,
+    videoMesh;
 
 
 var randomEvents = {
@@ -171,6 +178,9 @@ function init() {
     addParticles();
 
 
+    addVideo();
+
+
     // renderer
 
     renderer = new THREE.WebGLRenderer();
@@ -216,6 +226,41 @@ function onWindowResize() {
 }
 
 
+function addVideo() {
+
+    // create Video Element
+    videoElement = document.createElement('video');
+    videoElement.loop = true;
+    videoElement.muted = true;
+    videoElement.src = 'res/media/FX02.ogv';
+    videoElement.play();
+
+    // add Video Plane
+    videotexture = new THREE.Texture(videoElement);
+    videotexture.minFilter = THREE.LinearFilter;
+    videotexture.magFilter = THREE.LinearFilter;
+    videotexture.format = THREE.RGBAFormat;
+    videotexture.generateMipmaps = false;
+
+    // video material
+    var material = new THREE.ShaderMaterial( {
+        uniforms : {
+            texture: {type: "t", value : videotexture}
+        },
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('fragmentShader').textContent
+    });
+
+    var geometry = new THREE.PlaneGeometry(400, 400, 4, 4);
+
+    videoMesh= new THREE.Mesh(geometry, material);
+
+    videoMesh.position.set(100, 0, 380);
+    videoMesh.rotation.x = -Math.PI  * .5 ;
+    //scene.add(mesh);
+}
+
+
 /**
  *  animation function
  */
@@ -233,7 +278,7 @@ function animate() {
 
     // var time = performance.now();
     //var delta = ( time - prevTime ) / 1000;
-    
+
     animateCamera();
 
 
@@ -265,7 +310,10 @@ function addParticles() {
 
 }
 
-
+/**
+ * toggle particle systems
+ * @param add bool
+ */
 function toggleParticles(add) {
     if(add)
     {
@@ -273,6 +321,24 @@ function toggleParticles(add) {
     }
     else {
         scene.remove(particleSystem);
+    }
+}
+
+
+/**
+ * toggle video
+ * @param add bool
+ */
+function toggleVideo(add) {
+    if(add)
+    {
+        scene.add(videoMesh);
+        videoElement.play = true;
+
+    }
+    else {
+        scene.remove(videoMesh);
+        videoElement.play = false;
     }
 }
 
@@ -294,7 +360,6 @@ function checkCollision() {
         // console.log(collisionResults, directionalVector.length);
 
         if (collisionResults.length > 0 && collisionResults[0].distance < directionalVector.length()) {
-
 
             triggerRandomEvent(collisionResults[0].object.name);
         }
@@ -338,9 +403,11 @@ function triggerRandomEvent(name) {
             break;
 
         case 'randomEvent-4' :
+            eventPlayVideo();
             break;
 
         case 'randomEvent-5' :
+            eventStopVideo();
             break;
 
         case 'randomEvent-6' :
@@ -357,31 +424,67 @@ function triggerRandomEvent(name) {
 
 }
 
+/**
+ * start to move Point Lights around the scene
+ */
 function eventStartMoveingPointLights() {
     randomEvents.movePointLight = true;
 }
 
+/**
+ * stop to move Point Lights around the scene
+ */
 function eventStopMoveingPointLights() {
     randomEvents.movePointLight = false;
 }
 
+/**
+ * start to jiggle spots Lights
+ * unsuported
+ */
 function eventStartMoveingSpotLights() {
     randomEvents.moveSpotLight = true;
 }
 
+/**
+ * stop to jiggle spots Lights
+ * unsuported
+ */
 function eventStopMoveingSpotLights() {
     randomEvents.moveSpotLight = false;
 }
 
+/**
+ * start and spawn particles
+ */
 function eventStartParticles() {
     randomEvents.spawnParticles = true;
     toggleParticles(true);
 }
 
+/**
+* stop and despawn particles
+*/
 function eventStopParticles() {
     randomEvents.spawnParticles = false;
 
     toggleParticles(false);
+}
+
+/**
+ * play the video clip
+ */
+function eventPlayVideo() {
+    randomEvents.playAudioVideo = true;
+    toggleVideo(true);
+}
+
+/**
+ * stop the video clip
+ */
+function eventStopVideo() {
+    randomEvents.playAudioVideo = false;
+    toggleVideo(false);
 }
 
 /**
@@ -409,6 +512,9 @@ function eventJiggleBuildings() {
         blocks[i].geometry.position.x = jiggle(blocks[i].jiggle.value.x, blocks[i].jiggle.amount.x);
         blocks[i].geometry.position.z = jiggle(blocks[i].jiggle.value.z, blocks[i].jiggle.amount.z);
 
+        var factor = randomRange(.7,.8);
+        blocks[i].geometry.scale.x = factor;
+        blocks[i].geometry.scale.z = factor;
 
     }
 }
@@ -520,7 +626,11 @@ function addBuildingsToScene() {
             var boxGeometry = new THREE.BoxGeometry(
                 boxWidth,//+ Math.random() * boxWidth/2 - boxWidth/4,
                 h,
-                boxDepth); // + Math.random() * boxDepth/2 - boxDepth/4);
+                boxDepth,// + Math.random() * boxDepth/2 - boxDepth/4);
+                3,
+                3,
+                3
+            );
 
             var boxMaterial = new THREE.MeshPhongMaterial({
                 color: 0xcccccc,
@@ -801,10 +911,18 @@ function toggleMouseMove() {
     controls.activeLook = !controls.activeLook;
 }
 
+/**
+ * toggle sounds
+ */
+function toggleSounds() {
+    videoElement.muted = !videoElement.muted;
+}
+
+
 var showSpotLightHelper = false;
 
 /**
- *
+ * toggle Spot light helper
  */
 function toggleSpotLightHelper() {
 
@@ -846,8 +964,11 @@ function registerKeyEvents() {
                 toggleSpotLightHelper();
                 break;
 
-            case 80: // p
+            case 57: // 9
+                toggleSounds();
+                break;
 
+            case 80: // p
                 console.log(player.position);
                 break;
 
@@ -922,6 +1043,9 @@ function render() {
     renderer.render(scene, camera);
 
     camera.update();
+
+    // update video Texture
+    videotexture.needsUpdate = true;
 
 }
 

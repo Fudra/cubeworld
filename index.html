@@ -23,6 +23,38 @@
 <script src="vendor/three.js/examples/js/GPUParticleSystem.js"></script>
 <script src="js/celShader.js"></script>
 <!--<script src="js/script.js"></script>-->
+
+
+
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    	varying vec2 vUv;
+
+    	void main()
+    	{
+    		vUv = uv;
+    		vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+    		gl_Position = projectionMatrix * mvPosition;
+    	}
+
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+    	uniform sampler2D texture;
+
+    	varying vec2 vUv;
+
+    	void main()
+    	{
+    		vec3 tColor = texture2D( texture, vUv ).rgb;
+    		float a =  (tColor.r + tColor.g + tColor.b) / 3.0 ;
+			//gl_FragColor = vec4(tColor, (0.9 - dot(color, tColor) / (length(tColor) + 0.05)) * 3.0);
+    		//gl_FragColor = vec4(a, a, a, 1.0);
+    	    //gl_FragColor = vec4(tColor, a);
+    	    gl_FragColor = vec4(tColor,a);
+    	}
+
+</script>
+
 <script src="js/cubeworld.js"></script>
 
 </body>
